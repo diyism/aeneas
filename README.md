@@ -1,3 +1,50 @@
+      sudo apt install espeak libespeak-dev
+      pip install aeneas
+      python -m aeneas.tools.execute_task ./my_corpus/nihao_zhongguo.wav ./my_corpus/nihao_zhongguo.txt     "task_language=cmn|os_task_file_format=json|is_text_type=plain"  ./nihao_zhongguo.json
+      subl aeneas_split.py
+
+      ######################aeneas_split.py begin:##################
+      import json
+      import os
+      from pydub import AudioSegment
+
+      def extract_pinyin_time_info(json_file):
+          with open(json_file, 'r') as f:
+              data = json.load(f)
+          fragments = data['fragments']
+          pinyin_time_info = [(f['lines'][0], float(f['begin']), float(f['end'])) for f in fragments]
+          return pinyin_time_info
+
+      # 将音频文件按拼音时间信息进行分割
+      def split_audio_by_pinyin(wav_file, map_file, output_dir):
+          audio = AudioSegment.from_wav(wav_file)
+          pinyin_time_info = extract_pinyin_time_info(map_file)
+          for i, (pinyin, begin, end) in enumerate(pinyin_time_info):
+              if pinyin:
+                  start_ms = begin * 1000
+                  end_ms = end * 1000
+                  pinyin_audio = audio[start_ms:end_ms]
+                  filename = f"{i}-{pinyin}.wav"
+                  filepath = os.path.join(output_dir, filename)
+                  pinyin_audio.export(filepath, format="wav")
+
+      # 主程序
+      def main():
+          wav_file = './my_corpus/nihao_zhongguo.wav'
+          map_file = './nihao_zhongguo.json'
+          output_dir = './split_wavs'
+
+          if not os.path.exists(output_dir):
+              os.makedirs(output_dir)
+
+          split_audio_by_pinyin(wav_file, map_file, output_dir)
+
+      if __name__ == "__main__":
+          main()
+      ######################aeneas_split.py end##################
+
+      aeneas 非常 简单有效, 比 mfa准确得多, 分解每个 汉语语音音节 都是准确的, 只有开头 两个 音节 不准确(第1个文件是环境噪音, 第2个文件是第1和第2音节)
+
 # aeneas
 
 **aeneas** is a Python/C library and a set of tools to automagically synchronize audio and text (aka forced alignment).
